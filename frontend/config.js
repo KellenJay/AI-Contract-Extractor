@@ -4,4 +4,5 @@
 window.CONTRACT_ANALYZER_CONFIG = {
   webhookUrl: "https://n8n.srv1696847.hstgr.cloud/webhook/7d90ba9a-649b-468e-95b5-0984450b83d8",
   updateWebhookUrl: "https://n8n.srv1696847.hstgr.cloud/webhook/update-term",
+  historyWebhookUrl: "https://n8n.srv1696847.hstgr.cloud/webhook/extraction-history",
 };

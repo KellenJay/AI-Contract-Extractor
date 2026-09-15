@@ -44,6 +44,48 @@
           <p>Upload an ACORD application, Statement of Values, or Loss Run. The extraction agent classifies the document, pulls the terms defined in the playbook, and returns a structured record.</p>
         </header>
 
+        <div id="dashboard" class="dashboard">
+          <div class="dashboard__header">
+            <h3>Activity</h3>
+            <select id="dashboard-range" class="dashboard__range">
+              <option value="7">Last 7 days</option>
+              <option value="30" selected>Last 30 days</option>
+              <option value="90">Last 90 days</option>
+              <option value="all">All time</option>
+            </select>
+          </div>
+
+          <div class="dashboard__kpis">
+            <div class="kpi-tile">
+              <p class="kpi-tile__label">Documents Analyzed</p>
+              <p class="kpi-tile__value" id="kpi-total">—</p>
+            </div>
+            <div class="kpi-tile">
+              <p class="kpi-tile__label">Avg. Verification Rate</p>
+              <p class="kpi-tile__value" id="kpi-verification">—</p>
+            </div>
+            <div class="kpi-tile">
+              <p class="kpi-tile__label">Flagged for Review</p>
+              <p class="kpi-tile__value" id="kpi-review">—</p>
+            </div>
+            <div class="kpi-tile kpi-tile--breakdown">
+              <p class="kpi-tile__label">By Document Type</p>
+              <div class="kpi-tile__breakdown" id="kpi-breakdown">—</div>
+            </div>
+          </div>
+
+          <div class="dashboard__recent">
+            <p class="table-hint">Recent uploads</p>
+            <table class="terms-table dashboard-table">
+              <thead>
+                <tr><th>Date</th><th>File</th><th>Type</th><th>Verification</th><th>Status</th></tr>
+              </thead>
+              <tbody id="dashboard-recent-body"></tbody>
+            </table>
+            <p id="dashboard-empty" class="table-hint" hidden>No uploads in this range yet.</p>
+          </div>
+        </div>
+
         <div id="view-upload" class="view">
           <form id="upload-form" class="upload-form">
             <label id="dropzone" class="dropzone" for="file-input">
@@ -230,9 +272,10 @@
 
       <div id="dualpane-citation-content" class="dualpane__citation-content" hidden>
         <div class="citation-panel__section">
-          <p class="citation-panel__label">Answer</p>
-          <p id="citation-panel-answer" class="citation-panel__answer">—</p>
+          <p class="citation-panel__label">Source</p>
           <p id="citation-panel-answer-original" class="citation-panel__answer-original" hidden>—</p>
+          <p id="citation-panel-source" class="citation-panel__source">—</p>
+          <blockquote id="citation-panel-quote" class="citation-panel__quote">—</blockquote>
         </div>
 
         <div class="citation-panel__section">
@@ -245,13 +288,7 @@
           <p id="citation-panel-confidence" class="citation-panel__confidence">—</p>
         </div>
 
-        <div class="citation-panel__section">
-          <p class="citation-panel__label">Source</p>
-          <p id="citation-panel-source" class="citation-panel__source">—</p>
-          <blockquote id="citation-panel-quote" class="citation-panel__quote">—</blockquote>
-        </div>
-
-        <p class="citation-panel__note">Quoted verbatim from the uploaded document by the extraction agent, and highlighted directly in the document on the left — not retrieved from a separate index, since the full document is already in context for this analysis.</p>
+        <p class="citation-panel__note">Quoted verbatim from the uploaded document by the extraction agent, and highlighted directly in the document on the left.</p>
       </div>
     </div>
   </aside>

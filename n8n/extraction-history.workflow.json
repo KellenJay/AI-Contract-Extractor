@@ -1,0 +1,127 @@
+{
+  "name": "Contract Analyzer - Extraction History",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "extraction-history",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "https://ai-contract-extractor.vercel.app"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [800, 0],
+      "id": "c3c3c3c3-0001-4c3c-8c3c-000000000001",
+      "name": "Webhook",
+      "webhookId": "d5e6f7a8-1b2c-4d3e-9f4a-5b6c7d8e9f01"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://deezsambjmjmdqwodqhs.supabase.co/rest/v1/extractions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "select", "value": "id,created_at,file_name,contract_type,key_terms,needs_human_review,self_consistency_runs" },
+            { "name": "order", "value": "created_at.desc" },
+            { "name": "limit", "value": "200" }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [1008, 0],
+      "id": "c3c3c3c3-0002-4c3c-8c3c-000000000002",
+      "name": "Fetch Extractions from Supabase",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 1000,
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "supabaseApi": { "id": "PLACEHOLDER_REPLACE_ON_IMPORT", "name": "Supabase account" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Supabase returns one n8n item per row — collect them into one array\n// and compute the per-row verification rate (fraction of tracked fields that\n// actually have a citation) so the frontend doesn't have to redo that math\n// per row itself.\nconst rows = $input.all().map((item) => item.json);\n\nconst extractions = rows.map((row) => {\n  const terms = Array.isArray(row.key_terms) ? row.key_terms : [];\n  const verifiedCount = terms.filter(\n    (t) => typeof t.source_quote === 'string' && t.source_quote.trim().length > 0\n  ).length;\n  return {\n    id: row.id,\n    created_at: row.created_at,\n    file_name: row.file_name,\n    contract_type: row.contract_type,\n    needs_human_review: row.needs_human_review ?? false,\n    self_consistency_runs: row.self_consistency_runs ?? null,\n    field_count: terms.length,\n    verified_count: verifiedCount,\n    verification_rate: terms.length ? verifiedCount / terms.length : null\n  };\n});\n\nreturn [{ json: { extractions } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1216, 0],
+      "id": "c3c3c3c3-0003-4c3c-8c3c-000000000003",
+      "name": "Build History Response"
+    },
+    {
+      "parameters": { "options": {} },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [1424, 0],
+      "id": "c3c3c3c3-0004-4c3c-8c3c-000000000004",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    extractions: [],\n    error: 'Could not load extraction history from the database after 2 attempts.'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1216, 224],
+      "id": "c3c3c3c3-0005-4c3c-8c3c-000000000005",
+      "name": "Build Fallback Response"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": { "responseCode": 502 }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [1424, 224],
+      "id": "c3c3c3c3-0006-4c3c-8c3c-000000000006",
+      "name": "Respond 502 - History Load Failed"
+    },
+    {
+      "parameters": {
+        "content": "# Contract Analyzer - Extraction History\n\nCompanion workflow to Contract Analyzer. Backs the Upload Document dashboard's\nKPI tiles and recent-uploads list — every extraction is already logged to the\n`extractions` table by the main workflow (Log Extraction to Supabase), this\njust reads that log back out.\n\nRLS is on with no policies on `extractions`, and the frontend has no Supabase\ncredentials at all, so this read has to go through n8n (using the same\nservice-role credential as the main workflow) rather than a direct-from-\nbrowser Supabase query.\n\n## How it works\n1. GET request, no body.\n2. Fetch up to 200 most recent rows (id, created_at, file_name, contract_type,\n   key_terms, needs_human_review, self_consistency_runs) — raw_response/model/\n   latency_ms are skipped, not needed for this view.\n3. Compute each row's verification_rate server-side (verified fields / total\n   tracked fields) so the frontend doesn't duplicate that logic.\n4. Frontend does its own date-range filtering and KPI aggregation client-side\n   from this one list — simplest thing that works at demo scale, avoids a\n   separate query shape per time filter.\n\n## Setup\n1. Import, reconnect the Supabase credential (service role — same as Contract\n   Analyzer's), publish.\n2. Set this workflow's Settings -> Error Workflow to \"Contract Analyzer -\n   Error Handler\" too, same as the main workflow.\n3. Copy the production webhook URL into frontend/config.js as historyWebhookUrl.\n\n## What this does NOT do\nNo pagination (fine at demo scale, would need it past a few hundred rows), no\nserver-side date filtering (frontend does it from the same 200-row list), no\nauth/multi-tenant scoping — every extraction from every user of this demo\nshows up in one shared history.",
+        "height": 680,
+        "width": 640
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [800, -640],
+      "id": "c3c3c3c3-0007-4c3c-8c3c-000000000007",
+      "name": "Sticky Note"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": { "main": [[{ "node": "Fetch Extractions from Supabase", "type": "main", "index": 0 }]] },
+    "Fetch Extractions from Supabase": {
+      "main": [
+        [{ "node": "Build History Response", "type": "main", "index": 0 }],
+        [{ "node": "Build Fallback Response", "type": "main", "index": 0 }]
+      ]
+    },
+    "Build History Response": { "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]] },
+    "Build Fallback Response": { "main": [[{ "node": "Respond 502 - History Load Failed", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "errorWorkflow": "REPLACE_WITH_ERROR_HANDLER_WORKFLOW_ID_AFTER_IMPORT"
+  },
+  "versionId": "d4e5f6a7-b8c9-40d1-8e2f-3a4b5c6d7e8f",
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "1ee21dfc80f315ed993e85c8dc97508d1c1d4e0b598766bf138052c558ce125b"
+  },
+  "id": "extHistWf001",
+  "tags": []
+}

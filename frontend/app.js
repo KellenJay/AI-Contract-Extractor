@@ -1,6 +1,7 @@
 (function () {
   const WEBHOOK_URL = window.CONTRACT_ANALYZER_CONFIG?.webhookUrl || "";
   const UPDATE_WEBHOOK_URL = window.CONTRACT_ANALYZER_CONFIG?.updateWebhookUrl || "";
+  const HISTORY_WEBHOOK_URL = window.CONTRACT_ANALYZER_CONFIG?.historyWebhookUrl || "";
 
   // ---------- Screen navigation ----------
   const screens = {
@@ -283,7 +284,7 @@
     return `<tr>
       <td>
         <span class="term-cell">
-          <span>${escapeHtml(label)}</span>
+          <span class="term-cell__label">${escapeHtml(label)}</span>
           ${riskTag}
         </span>
       </td>
@@ -401,7 +402,6 @@
     const hasQuote = typeof term.source_quote === "string" && term.source_quote.trim().length > 0;
 
     document.getElementById("citation-panel-term").textContent = term.label ?? "—";
-    document.getElementById("citation-panel-answer").textContent = term.value ?? "Not specified";
     document.getElementById("citation-panel-reasoning").textContent =
       typeof term.reasoning === "string" && term.reasoning.trim()
         ? term.reasoning
@@ -452,7 +452,8 @@
       quoteEl.hidden = false;
     } else {
       sourceEl.hidden = true;
-      quoteEl.textContent = "No verbatim quote — the agent did not find this term stated in the document.";
+      const value = term.value ?? "Not specified";
+      quoteEl.textContent = `${value} — no verbatim quote, the agent did not find this term stated in the document.`;
       quoteEl.hidden = false;
     }
   }
@@ -685,6 +686,7 @@
       showUploadView("upload");
       currentContractUrl = analyzedFileUrl;
       renderResults(data, selectedFile.name);
+      loadDashboard();
     } catch (err) {
       document.getElementById("error-message").textContent =
         err.message || "Something went wrong talking to the extraction service.";
@@ -703,7 +705,7 @@
     playbookBody.innerHTML = rows.map((r) => `
       <tr>
         <td><span class="type-pill">${escapeHtml(r.contract_type)}</span></td>
-        <td>${escapeHtml(r.key_term_label)}</td>
+        <td class="term-name-cell">${escapeHtml(r.key_term_label)}</td>
         <td>${escapeHtml(r.key_term_description)}</td>
         <td><span class="risk-badge ${riskClass(r.risk_weight)}">${r.risk_weight}/5</span></td>
       </tr>
@@ -719,4 +721,83 @@
   });
 
   renderPlaybook();
+
+  // ---------- Dashboard (Upload screen) ----------
+  const dashboardRange = document.getElementById("dashboard-range");
+  const kpiTotal = document.getElementById("kpi-total");
+  const kpiVerification = document.getElementById("kpi-verification");
+  const kpiReview = document.getElementById("kpi-review");
+  const kpiBreakdown = document.getElementById("kpi-breakdown");
+  const dashboardRecentBody = document.getElementById("dashboard-recent-body");
+  const dashboardEmpty = document.getElementById("dashboard-empty");
+
+  let allExtractions = [];
+
+  function filterExtractionsByRange(range) {
+    if (range === "all") return allExtractions;
+    const days = Number(range);
+    const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+    return allExtractions.filter((ex) => new Date(ex.created_at).getTime() >= cutoff);
+  }
+
+  function renderDashboard() {
+    const rows = filterExtractionsByRange(dashboardRange.value);
+
+    kpiTotal.textContent = String(rows.length);
+
+    const withRate = rows.filter((r) => typeof r.verification_rate === "number");
+    kpiVerification.textContent = withRate.length
+      ? `${Math.round((withRate.reduce((sum, r) => sum + r.verification_rate, 0) / withRate.length) * 100)}%`
+      : "—";
+
+    const reviewCount = rows.filter((r) => r.needs_human_review).length;
+    kpiReview.textContent = rows.length ? `${reviewCount} of ${rows.length}` : "—";
+
+    const byType = rows.reduce((acc, r) => {
+      const type = r.contract_type || "UNKNOWN";
+      acc[type] = (acc[type] || 0) + 1;
+      return acc;
+    }, {});
+    const typeEntries = Object.entries(byType).sort((a, b) => b[1] - a[1]);
+    kpiBreakdown.innerHTML = typeEntries.length
+      ? typeEntries.map(([type, count]) => `<span>${escapeHtml(type)} &middot; ${count}</span>`).join("")
+      : "—";
+
+    dashboardRecentBody.innerHTML = rows.slice(0, 10).map((r) => {
+      const date = new Date(r.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+      const fileName = r.file_name || "—";
+      const rate = typeof r.verification_rate === "number" ? `${Math.round(r.verification_rate * 100)}%` : "—";
+      const statusBadge = r.needs_human_review
+        ? `<span class="confidence-badge confidence-review">Needs Review</span>`
+        : `<span class="confidence-badge confidence-verified">Clean</span>`;
+      return `
+        <tr>
+          <td>${date}</td>
+          <td>${escapeHtml(fileName)}</td>
+          <td><span class="type-pill">${escapeHtml(r.contract_type || "UNKNOWN")}</span></td>
+          <td>${rate}</td>
+          <td>${statusBadge}</td>
+        </tr>
+      `;
+    }).join("");
+
+    dashboardEmpty.hidden = rows.length > 0;
+  }
+
+  dashboardRange.addEventListener("change", renderDashboard);
+
+  async function loadDashboard() {
+    if (!HISTORY_WEBHOOK_URL) return;
+    try {
+      const res = await fetch(HISTORY_WEBHOOK_URL, { method: "GET" });
+      const data = await res.json();
+      allExtractions = Array.isArray(data.extractions) ? data.extractions : [];
+      renderDashboard();
+    } catch (err) {
+      dashboardEmpty.textContent = "Could not load extraction history.";
+      dashboardEmpty.hidden = false;
+    }
+  }
+
+  loadDashboard();
 })();
