@@ -121,6 +121,7 @@ body {
   flex: 1;
   padding: 28px 56px 48px;
   max-width: 960px;
+  margin: 0 auto;
   min-width: 0;
 }
 
