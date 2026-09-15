@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contract Intelligence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar__brand">
+        <span class="sidebar__logo-chip sidebar__logo-chip--full">
+          <img src="assets/boundai-logo.webp" alt="BoundAI" class="sidebar__logo" />
+        </span>
+        <span class="sidebar__logo-chip sidebar__logo-chip--icon">
+          <img src="assets/boundai-icon.webp" alt="BoundAI" class="sidebar__logo-icon" />
+        </span>
+      </div>
+
+      <nav class="sidebar__nav">
+        <button class="nav-item is-active" data-screen="upload" title="Upload Document">
+          <span class="nav-item__icon">＋</span> <span class="nav-item__label">Upload Document</span>
+        </button>
+        <button class="nav-item" data-screen="results" title="Analysis Results">
+          <span class="nav-item__icon">▤</span> <span class="nav-item__label">Analysis Results</span>
+        </button>
+        <button class="nav-item" data-screen="playbook" title="Playbook">
+          <span class="nav-item__icon">▦</span> <span class="nav-item__label">Playbook</span>
+        </button>
+      </nav>
+
+      <button id="sidebar-toggle" class="sidebar-toggle" aria-label="Collapse sidebar" title="Collapse sidebar">‹</button>
+    </aside>
+
+    <main class="content">
+      <!-- SCREEN 1: Upload -->
+      <section id="screen-upload" class="screen">
+        <header class="screen-header">
+          <h1>Upload Submission Document</h1>
+          <p>Upload an ACORD application, Statement of Values, or Loss Run. The extraction agent classifies the document, pulls the terms defined in the playbook, and returns a structured record.</p>
+        </header>
+
+        <div id="view-upload" class="view">
+          <form id="upload-form" class="upload-form">
+            <label id="dropzone" class="dropzone" for="file-input">
+              <input id="file-input" type="file" accept="application/pdf" hidden />
+              <div class="dropzone__icon">＋</div>
+              <div class="dropzone__label">Drop a document here, or click to browse</div>
+              <div class="dropzone__hint">PDF, up to 10MB</div>
+            </label>
+
+            <div id="file-preview" class="file-preview" hidden>
+              <div class="file-preview__bar">
+                <div class="file-preview__info">
+                  <span class="file-preview__eyebrow">Selected file</span>
+                  <span id="file-preview-name" class="file-preview__name">—</span>
+                </div>
+                <div class="file-preview__actions">
+                  <button type="button" class="btn-secondary" id="file-preview-change">Choose a different file</button>
+                  <button id="analyze-btn" class="btn-primary" type="submit">Analyze Document</button>
+                </div>
+              </div>
+              <iframe id="file-preview-frame" class="file-preview__frame" title="Document preview"></iframe>
+            </div>
+          </form>
+          <p id="config-hint" class="config-hint"></p>
+        </div>
+
+        <div id="view-loading" class="view" hidden>
+          <div class="spinner"></div>
+          <p class="loading-text">Classifying document type and extracting key terms…</p>
+        </div>
+
+        <div id="view-error" class="view" hidden>
+          <div class="error-card">
+            <h2>Couldn't analyze that document</h2>
+            <p id="error-message"></p>
+            <button class="btn-secondary" id="error-retry">Try another file</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- SCREEN 2: Analysis Results -->
+      <section id="screen-results" class="screen" hidden>
+        <header class="screen-header">
+          <h1>Analysis Results</h1>
+          <p>Extracted terms, risk scoring, and a plain-language summary for the most recently analyzed document.</p>
+        </header>
+
+        <div id="results-empty" class="empty-state">
+          <p>No document analyzed yet in this session.</p>
+          <button class="btn-secondary" id="results-empty-cta">Go to Upload</button>
+        </div>
+
+        <div id="results-content" class="view" hidden>
+          <div class="results-toolbar">
+            <div class="results-toolbar__title">
+              <span class="results-header__type" id="result-contract-type">—</span>
+              <span class="doc-status" id="doc-status" title="Whole-submission status: cleared automatically, or flagged for a human to look at">—</span>
+              <span class="verification-rate" id="verification-rate" title="Fields with a verified citation, out of all tracked fields — a computed ratio, not a model self-rating">—</span>
+              <h2 id="result-filename">—</h2>
+            </div>
+            <div class="results-toolbar__actions">
+              <button class="btn-secondary" id="result-view-contract">View Document</button>
+              <button class="btn-secondary" id="result-export-pdf">Export to PDF</button>
+              <button class="btn-secondary" id="result-restart">Analyze another</button>
+            </div>
+          </div>
+
+          <p id="config-hint-results" class="config-hint" hidden></p>
+
+          <div id="review-banner" class="review-banner" hidden>
+            <span class="review-banner__icon">⚠</span>
+            <div>
+              <strong>Needs human review before this goes out.</strong>
+              <p id="review-banner-reason"></p>
+            </div>
+          </div>
+
+          <div class="card summary-card">
+            <h3>Summary</h3>
+            <p id="result-summary" class="summary-text">—</p>
+          </div>
+
+          <div class="results-grid">
+            <div class="card">
+              <h3>Parties</h3>
+              <ul id="result-parties" class="party-list"></ul>
+            </div>
+            <div class="card">
+              <h3>Effective Date</h3>
+              <p id="result-date" class="big-value">—</p>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Key Terms &amp; Risk Score</h3>
+            <p class="table-hint">Click a source badge to see the exact sentence a value was pulled from and how the self-consistency vote went, or the pencil to correct it yourself. Risk weight explained on the <a href="#" data-nav-screen="playbook">Playbook tab</a>.</p>
+            <table class="terms-table">
+              <thead>
+                <tr><th>Term</th><th>Value</th><th>Confidence</th><th>Source</th></tr>
+              </thead>
+              <tbody id="result-terms-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- SCREEN 3: Playbook management -->
+      <section id="screen-playbook" class="screen" hidden>
+        <header class="screen-header">
+          <h1>Playbook</h1>
+          <p>The rules the extraction agent is allowed to look for, per document type — read from the <code>contract_playbook</code> table in Supabase.</p>
+        </header>
+
+        <details class="card risk-scale-card">
+          <summary class="risk-scale-card__summary">
+            <span>Risk Weight Scale</span>
+            <span class="risk-scale-card__chevron">›</span>
+          </summary>
+          <div class="risk-scale-card__body">
+            <p class="table-hint">Every term below carries a risk weight set by the playbook, not the extraction agent. It measures how much an error on that field matters to the underwriting decision — not how hard the field was to find.</p>
+            <ol class="risk-scale-list">
+              <li><span class="risk-badge risk-low">1/5</span> Informational — wrong or missing has no effect on the decision.</li>
+              <li><span class="risk-badge risk-low">2/5</span> Low stakes — a correction is a minor edit, not a re-review.</li>
+              <li><span class="risk-badge risk-mid">3/5</span> Moderate — affects record accuracy, but isn't a go/no-go factor on its own.</li>
+              <li><span class="risk-badge risk-high">4/5</span> High stakes — materially affects pricing, timing, or coverage scope if wrong.</li>
+              <li><span class="risk-badge risk-high">5/5</span> Critical — directly drives an accept/decline or a coverage limit; errors carry real financial or compliance exposure.</li>
+            </ol>
+          </div>
+        </details>
+
+        <div class="playbook-filters" id="playbook-filters">
+          <button class="filter-chip is-active" data-type="ALL">All</button>
+          <button class="filter-chip" data-type="ACORD">ACORD</button>
+          <button class="filter-chip" data-type="SOV">SOV</button>
+          <button class="filter-chip" data-type="LOSS_RUN">Loss Run</button>
+        </div>
+
+        <div class="card">
+          <table class="terms-table playbook-table">
+            <thead>
+              <tr><th>Type</th><th>Term</th><th>Description</th><th>Risk Weight</th></tr>
+            </thead>
+            <tbody id="playbook-body"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="dualpane-backdrop" class="citation-backdrop" hidden></div>
+  <aside id="dualpane" class="dualpane" hidden>
+    <div class="dualpane__doc">
+      <div class="dualpane__doc-toolbar">
+        <h3 id="dualpane-doc-title">Contract</h3>
+        <div class="dualpane__doc-nav">
+          <button id="dualpane-prev-page" class="btn-secondary" type="button" aria-label="Previous page">‹</button>
+          <span id="dualpane-page-indicator">Page 1 of 1</span>
+          <button id="dualpane-next-page" class="btn-secondary" type="button" aria-label="Next page">›</button>
+        </div>
+      </div>
+      <div id="dualpane-doc-viewport" class="dualpane__doc-viewport">
+        <p id="dualpane-doc-loading" class="dualpane__doc-loading">Loading document…</p>
+        <div id="dualpane-page-wrap" class="dualpane__page-wrap" hidden>
+          <canvas id="dualpane-canvas"></canvas>
+          <div id="dualpane-textlayer" class="textLayer"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dualpane__citation">
+      <div class="citation-panel__header">
+        <div>
+          <p class="citation-panel__eyebrow">Extracted term</p>
+          <h3 id="citation-panel-term">—</h3>
+          <span id="citation-panel-clause" class="clause-badge" hidden>—</span>
+          <span id="citation-panel-edited-badge" class="edited-tag" hidden>Edited</span>
+        </div>
+        <button class="citation-panel__close" id="dualpane-close" aria-label="Close">&times;</button>
+      </div>
+
+      <div id="dualpane-citation-placeholder" class="citation-panel__placeholder">
+        <p>Click a source badge in the Key Terms table to see the answer, reasoning, and citation for a specific value here — highlighted in the document on the left.</p>
+      </div>
+
+      <div id="dualpane-citation-content" class="dualpane__citation-content" hidden>
+        <div class="citation-panel__section">
+          <p class="citation-panel__label">Answer</p>
+          <p id="citation-panel-answer" class="citation-panel__answer">—</p>
+          <p id="citation-panel-answer-original" class="citation-panel__answer-original" hidden>—</p>
+        </div>
+
+        <div class="citation-panel__section">
+          <p class="citation-panel__label">Reasoning</p>
+          <p id="citation-panel-reasoning" class="citation-panel__reasoning">—</p>
+        </div>
+
+        <div class="citation-panel__section" id="citation-panel-confidence-section">
+          <p class="citation-panel__label">Confidence — self-consistency vote</p>
+          <p id="citation-panel-confidence" class="citation-panel__confidence">—</p>
+        </div>
+
+        <div class="citation-panel__section">
+          <p class="citation-panel__label">Source</p>
+          <p id="citation-panel-source" class="citation-panel__source">—</p>
+          <blockquote id="citation-panel-quote" class="citation-panel__quote">—</blockquote>
+        </div>
+
+        <p class="citation-panel__note">Quoted verbatim from the uploaded document by the extraction agent, and highlighted directly in the document on the left — not retrieved from a separate index, since the full document is already in context for this analysis.</p>
+      </div>
+    </div>
+  </aside>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="config.js"></script>
+  <script src="playbook-data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

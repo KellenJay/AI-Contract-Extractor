@@ -1,0 +1,14 @@
+node_modules/
+.env
+*.log
+Thumbs.db
+.DS_Store
+
+# Personal working docs — not part of the public demo
+/Transcript contract n8n.docx
+/Trust Transcript.docx
+~$*.docx
+~$*.doc
+
+# Leftover pre-pivot (lease-compliance) material
+/docs/

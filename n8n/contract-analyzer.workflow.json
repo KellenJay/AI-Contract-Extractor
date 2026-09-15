@@ -1,0 +1,865 @@
+{
+  "name": "Contract Analyzer",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "7d90ba9a-649b-468e-95b5-0984450b83d8",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "https://YOUR-VERCEL-DOMAIN.vercel.app"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        960,
+        -480
+      ],
+      "id": "12ebe510-6617-4aec-aecd-2fcfdd3d2849",
+      "name": "Webhook",
+      "webhookId": "e733e458-df38-4929-b2b3-e5f134c9d891"
+    },
+    {
+      "parameters": {
+        "jsCode": "const binary = $input.item.binary?.file;\n\nif (!binary) {\n  return [{ json: { valid: false, statusCode: 400, error: 'No file uploaded. Expected a binary field named \"file\".' } }];\n}\n\nconst allowedTypes = ['application/pdf'];\nif (binary.mimeType && !allowedTypes.includes(binary.mimeType)) {\n  return [{ json: { valid: false, statusCode: 400, error: `Unsupported file type: ${binary.mimeType}. Upload a PDF.` } }];\n}\n\nconst maxBytes = 10 * 1024 * 1024; // 10MB\nconst size = binary.fileSize ? Number(binary.fileSize) : (binary.data ? Buffer.byteLength(binary.data, 'base64') : 0);\nif (size > maxBytes) {\n  return [{ json: { valid: false, statusCode: 400, error: 'File too large. Max 10MB.' } }];\n}\n\nconst intent = $json.body?.intent;\nif (!intent) {\n  return [{ json: { valid: false, statusCode: 400, error: 'Missing \"intent\" in request body.' } }];\n}\n\nreturn [{ json: { valid: true }, binary: $input.item.binary }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1184,
+        -480
+      ],
+      "id": "a1a1a1a1-0001-4a1a-8a1a-000000000001",
+      "name": "Validate Input"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1408,
+        -480
+      ],
+      "id": "a1a1a1a1-0002-4a1a-8a1a-000000000002",
+      "name": "Input Valid?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1632,
+        -128
+      ],
+      "id": "a1a1a1a1-0003-4a1a-8a1a-000000000003",
+      "name": "Respond 400 - Invalid Input"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "file",
+        "options": {
+          "joinPages": false
+        }
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        1632,
+        -592
+      ],
+      "id": "0d3bc0cd-fca7-4b57-9160-0077d27bbd7d",
+      "name": "Extract from File",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rawText = $json.text;\nconst pages = Array.isArray(rawText) ? rawText : [String(rawText ?? '')];\nconst text = pages.map((page, i) => `--- PAGE ${i + 1} ---\n${String(page ?? '')}`).join('\n\n');\nconst trimmed = text.trim();\n\nif (trimmed.length < 200) {\n  return [{ json: { sane: false, reason: `Extracted text is only ${trimmed.length} characters — likely a scanned image PDF with no text layer, or an empty/corrupted file.` } }];\n}\n\nconst alphanumeric = (trimmed.match(/[a-zA-Z0-9]/g) || []).length;\nconst ratio = alphanumeric / trimmed.length;\nif (ratio < 0.5) {\n  return [{ json: { sane: false, reason: 'Extracted text is mostly non-alphanumeric characters — likely a garbled or corrupted extraction.' } }];\n}\n\nreturn [{ json: { sane: true, text } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1856,
+        -592
+      ],
+      "id": "c1c1c1c1-0001-4c1c-8c1c-000000000001",
+      "name": "Sanity Check Extraction"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "c2",
+              "leftValue": "={{ $json.sane }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2080,
+        -592
+      ],
+      "id": "c1c1c1c1-0002-4c1c-8c1c-000000000002",
+      "name": "Extraction Sane?"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract from File's error branch (exception thrown — e.g. encrypted PDF) and\n// Sanity Check's false branch both land here via the same message shape, so\n// they can share one response node downstream.\nconst reason = $json.reason\n  || $json.error?.message\n  || 'Could not read the uploaded PDF. It may be corrupted, password-protected, or not a real PDF.';\n\nreturn [{\n  json: {\n    valid: false,\n    statusCode: 422,\n    needs_human_review: true,\n    error: reason\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2304,
+        -352
+      ],
+      "id": "c1c1c1c1-0003-4c1c-8c1c-000000000003",
+      "name": "Build Extraction-Failed Response"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 422
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2528,
+        -352
+      ],
+      "id": "c1c1c1c1-0004-4c1c-8c1c-000000000004",
+      "name": "Respond 422 - Needs Manual Review"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Intent : {{ $('Webhook').item.json.body.intent }}\nFile Text : {{ $json.text }}",
+        "options": {
+          "systemMessage": "=You are a contract analysis orchestrator. Your job is to analyze the user message,\ndetect the user's intent, identify the contract type, and call the correct tools\nin the correct order.\n\nSTEP 1 — DETECT INTENT from the user message:\n- \"key terms\", \"extract terms\", \"what are the terms\", \"summarize terms\", \"list terms\" → intent = \"key_term_extraction\"\n\nSTEP 2 — DETECT DOCUMENT TYPE from the document text:\n\n- \"ACORD\", \"Commercial Insurance Application\", \"Applicant Information\", \"Named Insured\", \n  \"Producer\", \"Coverage Requested\", \"Proposed Effective Date\" \n  → contract_type = \"ACORD\"\n\n- \"Statement of Values\", \"SOV\", \"Schedule of Locations\", \"Building Value\", \"Contents Value\", \n  \"Construction Type\", \"Protection Class\", \"Total Insured Value\" \n  → contract_type = \"SOV\"\n\n- \"Loss Run\", \"Claim History\", \"Date of Loss\", \"Cause of Loss\", \"Amount Paid\", \"Reserve\", \n  \"Total Incurred\", \"Policy Period(s) Covered\" \n  → contract_type = \"LOSS_RUN\"\n\n- If none match \n  → contract_type = \"UNKNOWN\"\n\nSTEP 3 — CALL TOOLS based on intent:\n\nIF intent = \"key_term_extraction\":\n→ CALL contract_playbook_agent — Pass: contract_type, intent. Wait for response.\n→ DO NOT call key_term_extraction_agent — key term extraction now runs OUTSIDE this agent,\n  as a separate self-consistency voting step (the workflow calls the extraction prompt\n  itself, multiple times, and votes on the results — that step does not need you).\n→ DO NOT call contract_risk_agent.\n\nFINAL RESPONSE RULES:\n- After contract_playbook_agent responds, read the playbook rules it wrote to shared memory\n  (the \"--- PLAYBOOK RULES FOR ... ---\" block, listing Rule Name / Label / Description / Risk Weight\n  for each row).\n- Return ONLY raw JSON — no prose, no markdown fences, no commentary before or after — in exactly\n  this shape:\n  {\n    \"contract_type\": \"<the contract type you detected in STEP 2>\",\n    \"playbook_rules\": [\n      { \"name\": \"<key_term_name>\", \"label\": \"<key_term_label>\", \"description\": \"<key_term_description>\", \"risk_weight\": <number> },\n      ...\n    ]\n  }\n- playbook_rules must list EVERY rule contract_playbook_agent retrieved — do not drop or summarize any.\n- Do NOT return the playbook rules as prose. Do NOT return intermediate tool outputs.\n- Wait until contract_playbook_agent has completed before responding.\n- Do not ask follow-up questions. Return the final result immediately.\n\nWhen contract_playbook_agent has been called and its rules are in memory,\ncompile the final output and return it immediately as your response.\nDo NOT ask follow-up questions. Do NOT wait for more input.\nThe workflow ends when you return the final result.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        2304,
+        -784
+      ],
+      "id": "c5dbc4ba-ea1a-4912-a648-674d71fffe8d",
+      "name": "Orchestrator Agent",
+      "onError": "continueErrorOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "jsCode": "// Orchestrator Agent's error branch — reached only after retries (3 tries,\n// 2s apart) are exhausted. Typically a persistent Anthropic API error (rate\n// limit, timeout, malformed output) rather than a one-off blip.\nreturn [{\n  json: {\n    valid: false,\n    statusCode: 502,\n    needs_human_review: true,\n    error: 'The extraction agent failed after 3 attempts. This usually means the LLM API is rate-limited, timing out, or returned output the parser could not use.'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2528,
+        -880
+      ],
+      "id": "c1c1c1c1-0005-4c1c-8c1c-000000000005",
+      "name": "Build Agent-Failed Response"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 502
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2752,
+        -880
+      ],
+      "id": "c1c1c1c1-0006-4c1c-8c1c-000000000006",
+      "name": "Respond 502 - Agent Failed"
+    },
+    {
+      "parameters": {
+        "jsCode": "let parsed;\nconst raw = $json.output ?? $json.text ?? '';\ntry {\n  const match = String(raw).match(/\\{[\\s\\S]*\\}/);\n  parsed = JSON.parse(match ? match[0] : raw);\n} catch (e) {\n  parsed = { contract_type: 'UNKNOWN', playbook_rules: [] };\n}\n\nreturn [{\n  json: {\n    contract_type: parsed.contract_type ?? 'UNKNOWN',\n    playbook_rules: Array.isArray(parsed.playbook_rules) ? parsed.playbook_rules : []\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2304,
+        -608
+      ],
+      "id": "d1d1d1d1-0001-4d1d-8d1d-000000000001",
+      "name": "Parse Orchestrator Output"
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e1e1e1e1-0001-4e1e-8e1e-000000000001",
+              "name": "contract_type",
+              "value": "={{ $json.contract_type }}",
+              "type": "string"
+            },
+            {
+              "id": "e1e1e1e1-0002-4e1e-8e1e-000000000002",
+              "name": "playbook_rules",
+              "value": "={{ $json.playbook_rules }}",
+              "type": "array"
+            },
+            {
+              "id": "e1e1e1e1-0003-4e1e-8e1e-000000000003",
+              "name": "text",
+              "value": "={{ $('Extract from File').item.json.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2528,
+        -608
+      ],
+      "id": "d1d1d1d1-0002-4d1d-8d1d-000000000002",
+      "name": "Attach Contract Text"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Self-consistency voting: run the extraction prompt N times independently at\n// temperature > 0, then vote on the results downstream (Aggregate Self-Consistency\n// Votes node). N=3 chosen as a cost/latency tradeoff — 3x the API calls and latency\n// of a single extraction call, on a pipeline that already runs ~30-60s per document.\nconst N = 3;\nconst base = $json;\nconst items = [];\nfor (let i = 1; i <= N; i++) {\n  items.push({\n    json: {\n      run_index: i,\n      run_count: N,\n      contract_type: base.contract_type,\n      playbook_rules: base.playbook_rules,\n      text: base.text\n    }\n  });\n}\nreturn items;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2752,
+        -608
+      ],
+      "id": "d1d1d1d1-0003-4d1d-8d1d-000000000003",
+      "name": "Prepare N Extraction Requests"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: \"claude-haiku-4-5-20251001\", max_tokens: 4096, temperature: 0.7, system: \"You are the Key Term Extraction Agent. Extract key terms from the contract text using the playbook rules provided in the user message as your guide. This call is one independent run of a self-consistency voting process \\u2014 several runs like this one will be compared afterwards, so answer only from the contract text and playbook rules given here, and do not try to guess what a \\\"consensus\\\" answer might be.\\n\\nThe contract text is divided into pages using \\\"--- PAGE N ---\\\" markers inserted directly before each page's content. Use these markers only to determine which page a value came from \\u2014 they are not part of the document's real content.\\n\\nYOUR PROCESS:\\n1. The user message contains the full contract text (with page markers) and the playbook rules (an array of {name, label, description, risk_weight}).\\n2. For EACH rule in the playbook rules, extract its value from the contract text. The rule's name is what to look for, the description tells you what it means.\\n3. Return structured JSON with:\\n   - contract_type: string\\n   - parties: array of strings\\n   - effective_date: string\\n   - key_terms: array of objects with \\\"label\\\", \\\"value\\\", \\\"risk_weight\\\", \\\"source_quote\\\", \\\"clause_ref\\\", \\\"page_number\\\", and \\\"reasoning\\\" fields\\n\\nFOR reasoning:\\n- Write 1-3 sentences explaining why you concluded this value, referencing what the source text actually says.\\n- Ground it in the actual words you found \\u2014 do not just restate the value, explain the WHY behind it.\\n- If the value is \\\"Not specified\\\", say plainly why: either the contract never addresses this term, or the field is calculated/derived rather than stated.\\n\\nFOR source_quote:\\n- Copy the exact sentence(s) from the supplied contract text that support the extracted value, verbatim \\u2014 do not paraphrase or summarize.\\n- Keep it to the shortest sentence or clause that actually supports the value, not the whole surrounding paragraph.\\n- Some playbook fields are calculated/derived rather than stated in the contract (e.g. an accounting figure computed from other terms, not a clause). For those, set value to \\\"Not specified\\\" and source_quote to null \\u2014 do not invent a quote or a value.\\n- If a term is genuinely not addressed anywhere in the contract, set value to \\\"Not specified\\\" and source_quote to null.\\n\\nFOR clause_ref:\\n- The document has section headings or field labels (e.g. \\\"APPLICANT INFORMATION\\\", \\\"SCHEDULE OF LOCATIONS\\\", \\\"CLAIM HISTORY\\\", or for the Statement of Values a specific \\\"Location 1\\\" / \\\"Location 2\\\" block). Identify which section or labeled block the source_quote actually falls under.\\n- Format as \\\"{Section heading in title case}\\\", optionally with a sub-label, e.g. \\\"Applicant Information\\\", \\\"Schedule of Locations \\u2014 Location 1\\\", \\\"Claim History \\u2014 Claim 2\\\".\\n- If source_quote is null (value is \\\"Not specified\\\"), clause_ref must also be null \\u2014 do not invent a section for a term you did not find.\\n- If you cannot confidently identify which section the quote is under, set clause_ref to null rather than guessing.\\n\\nFOR page_number:\\n- Report the page number (an integer, starting at 1) that the \\\"--- PAGE N ---\\\" marker immediately preceding source_quote indicates.\\n- If source_quote is null, page_number must also be null \\u2014 do not invent a page for a term you did not find.\\n\\nRULES:\\n- The list of key terms comes ONLY from the playbook rules given in the user message.\\n- Do not hardcode any term names \\u2014 use whatever terms are in the playbook rules.\\n- Do not add terms that are not in the playbook.\\n- risk_weight for each term comes directly from the matching playbook rule \\u2014 copy it, do not invent your own.\\n- Never fabricate a source_quote, clause_ref, page_number, or reasoning \\u2014 if you did not find supporting text verbatim in the contract, source_quote, clause_ref, and page_number must all be null.\\n- Return ONLY raw JSON. No prose, no markdown fences, no commentary before or after.\", messages: [ { role: \"user\", content: \"Contract text:\\n\\n\" + $json.text + \"\\n\\nPlaybook rules (JSON — extract exactly these fields, no others):\\n\\n\" + JSON.stringify($json.playbook_rules, null, 2) } ] }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2976,
+        -608
+      ],
+      "id": "d1d1d1d1-0004-4d1d-8d1d-000000000004",
+      "name": "Extract Key Terms (Run N)",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "anthropicApi": {
+          "id": "PLACEHOLDER_REPLACE_ON_IMPORT",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e2e2e2e2-0001-4e2e-8e2e-000000000001",
+              "name": "completion",
+              "value": "={{ $json.content[0].text }}",
+              "type": "string"
+            },
+            {
+              "id": "e2e2e2e2-0002-4e2e-8e2e-000000000002",
+              "name": "contract_type",
+              "value": "={{ $('Prepare N Extraction Requests').item.json.contract_type }}",
+              "type": "string"
+            },
+            {
+              "id": "e2e2e2e2-0003-4e2e-8e2e-000000000003",
+              "name": "run_index",
+              "value": "={{ $('Prepare N Extraction Requests').item.json.run_index }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3200,
+        -608
+      ],
+      "id": "d1d1d1d1-0005-4d1d-8d1d-000000000005",
+      "name": "Attach Run Context"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Self-consistency vote: N independent extraction runs (see Prepare N Extraction\n// Requests) land here as N items. For each playbook field, take the majority value\n// across runs as the final answer, with agreement fraction as the confidence score\n// (e.g. 3/3 = high confidence, 2/3 = lower). No majority at all (every run disagreed)\n// is flagged as no_consensus regardless of risk_weight — handled as a forced review\n// trigger in Parse Result, not here.\nconst runs = $input.all().map((item) => {\n  const raw = item.json.completion ?? '';\n  try {\n    const match = String(raw).match(/\\{[\\s\\S]*\\}/);\n    return JSON.parse(match ? match[0] : raw);\n  } catch (e) {\n    return { parties: [], effective_date: null, key_terms: [] };\n  }\n});\n\nconst N = runs.length;\nconst contractType = $input.all()[0]?.json?.contract_type ?? 'UNKNOWN';\n\nfunction normalize(v) {\n  return String(v ?? '').trim().toLowerCase().replace(/\\s+/g, ' ');\n}\n\nconst labelOrder = [];\nconst seenLabels = new Set();\nfor (const run of runs) {\n  for (const t of (run.key_terms ?? [])) {\n    if (t.label && !seenLabels.has(t.label)) {\n      seenLabels.add(t.label);\n      labelOrder.push(t.label);\n    }\n  }\n}\n\nconst mergedKeyTerms = labelOrder.map((label) => {\n  const entries = runs\n    .map((run) => (run.key_terms ?? []).find((t) => t.label === label) ?? null)\n    .filter(Boolean);\n\n  const counts = new Map();\n  for (const e of entries) {\n    const key = normalize(e.value);\n    if (!counts.has(key)) counts.set(key, { count: 0, sample: e });\n    counts.get(key).count += 1;\n  }\n\n  let best = null;\n  for (const v of counts.values()) {\n    if (!best || v.count > best.count) best = v;\n  }\n\n  const topCount = best ? best.count : 0;\n  const noConsensus = counts.size > 1 && topCount === 1;\n\n  return {\n    label,\n    value: best ? best.sample.value : 'Not specified',\n    risk_weight: best ? best.sample.risk_weight : (entries[0]?.risk_weight ?? null),\n    source_quote: best ? best.sample.source_quote : null,\n    clause_ref: best ? best.sample.clause_ref : null,\n    page_number: best ? (best.sample.page_number ?? null) : null,\n    reasoning: best ? (best.sample.reasoning ?? null) : null,\n    confidence_fraction: `${topCount}/${N}`,\n    confidence_ratio: N ? topCount / N : 0,\n    no_consensus: noConsensus\n  };\n});\n\n// Representative run for contract-level fields (parties, effective_date): the run\n// whose own values agree with the merged key_terms the most.\nfunction agreementScore(run) {\n  let score = 0;\n  for (const mt of mergedKeyTerms) {\n    const rt = (run.key_terms ?? []).find((t) => t.label === mt.label);\n    if (rt && normalize(rt.value) === normalize(mt.value)) score += 1;\n  }\n  return score;\n}\n\nlet bestRun = runs[0] ?? { parties: [], effective_date: null };\nlet bestScore = -1;\nfor (const run of runs) {\n  const s = agreementScore(run);\n  if (s > bestScore) { bestScore = s; bestRun = run; }\n}\n\nreturn [{\n  json: {\n    contract_type: contractType,\n    parties: bestRun.parties ?? [],\n    effective_date: bestRun.effective_date ?? null,\n    key_terms: mergedKeyTerms,\n    self_consistency_runs: N\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3424,
+        -608
+      ],
+      "id": "d1d1d1d1-0006-4d1d-8d1d-000000000006",
+      "name": "Aggregate Self-Consistency Votes"
+    },
+    {
+      "parameters": {
+        "jsCode": "const parsed = $json;\nconst keyTerms = Array.isArray(parsed.key_terms) ? parsed.key_terms : [];\n\n// GATE 2 — escalate to human review when any of:\n//  (a) a term is BOTH high-stakes (risk_weight 4-5) AND unverified (no citation)\n//  (b) the self-consistency vote found no consensus at all (every run disagreed) —\n//      flagged regardless of risk_weight, since \"the model can't agree with itself\"\n//      is its own reason for distrust\n//  (c) a term is high-stakes (risk_weight 4-5) AND the self-consistency runs did not\n//      unanimously agree (a majority exists, but it wasn't 3/3) — partial agreement\n//      on a critical field is still real uncertainty worth a human's attention, even\n//      when the majority answer happens to carry a citation. This matters most for\n//      synthesized/summarized fields (e.g. \"Loss History Summary\") where disagreement\n//      usually means real interpretive judgment was involved, not just a lookup.\nconst unverifiedHighRisk = keyTerms.filter(\n  (t) => Number(t.risk_weight) >= 4 && (t.source_quote == null || String(t.source_quote).trim() === '')\n);\nconst noConsensusTerms = keyTerms.filter((t) => t.no_consensus === true);\nconst partialAgreementHighRisk = keyTerms.filter(\n  (t) => Number(t.risk_weight) >= 4 && !t.no_consensus && typeof t.confidence_ratio === 'number' && t.confidence_ratio < 1 && !unverifiedHighRisk.includes(t)\n);\nconst flaggedTerms = [...new Set([...unverifiedHighRisk, ...noConsensusTerms, ...partialAgreementHighRisk])];\nconst needsHumanReview = flaggedTerms.length > 0;\n\nconst reasonParts = [];\nif (unverifiedHighRisk.length > 0) {\n  reasonParts.push(`${unverifiedHighRisk.length} high-risk term(s) could not be verified against the contract text: ${unverifiedHighRisk.map((t) => t.label).filter(Boolean).join(', ')}.`);\n}\nif (noConsensusTerms.length > 0) {\n  reasonParts.push(`${noConsensusTerms.length} term(s) had no agreement across the ${parsed.self_consistency_runs ?? '?'} extraction runs: ${noConsensusTerms.map((t) => t.label).filter(Boolean).join(', ')}.`);\n}\nif (partialAgreementHighRisk.length > 0) {\n  reasonParts.push(`${partialAgreementHighRisk.length} high-risk term(s) had only partial agreement (not unanimous) across the ${parsed.self_consistency_runs ?? '?'} extraction runs: ${partialAgreementHighRisk.map((t) => t.label).filter(Boolean).join(', ')}.`);\n}\nconst reviewReason = reasonParts.length ? reasonParts.join(' ') : null;\n\nreturn [{\n  json: {\n    session_id: $execution.id,\n    contract_type: parsed.contract_type ?? 'UNKNOWN',\n    parties: parsed.parties ?? [],\n    effective_date: parsed.effective_date ?? null,\n    key_terms: keyTerms,\n    raw_response: parsed,\n    model: 'claude-haiku-4-5-20251001',\n    self_consistency_runs: parsed.self_consistency_runs ?? null,\n    needs_human_review: needsHumanReview,\n    review_reason: reviewReason\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2752,
+        -784
+      ],
+      "id": "a1a1a1a1-0004-4a1a-8a1a-000000000004",
+      "name": "Parse Result"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://deezsambjmjmdqwodqhs.supabase.co/rest/v1/extractions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2976,
+        -784
+      ],
+      "id": "a1a1a1a1-0005-4a1a-8a1a-000000000005",
+      "name": "Log Extraction to Supabase",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "supabaseApi": {
+          "id": "PLACEHOLDER_REPLACE_ON_IMPORT",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Log Extraction to Supabase returns the inserted row (Prefer: return=representation).\n// Deliberately NOT using $('Parse Result').item.json here — a cross-node lookup from\n// inside Code-node JS hangs/errors on this instance's Task Runner (see README).\n// Not needed anyway: every field below was already sent TO Supabase in the insert body,\n// so the returned row already has all of it, available locally on $json with no\n// cross-node call required.\nconst inserted = Array.isArray($json) ? $json[0] : $json;\n\nreturn [{\n  json: {\n    id: inserted?.id ?? null,\n    contract_type: inserted?.contract_type ?? 'UNKNOWN',\n    parties: inserted?.parties ?? [],\n    effective_date: inserted?.effective_date ?? null,\n    key_terms: inserted?.key_terms ?? [],\n    self_consistency_runs: inserted?.self_consistency_runs ?? null,\n    needs_human_review: inserted?.needs_human_review ?? false,\n    review_reason: inserted?.review_reason ?? null\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3200,
+        -784
+      ],
+      "id": "a1a1a1a1-0008-4a1a-8a1a-000000000008",
+      "name": "Finalize Response"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        3424,
+        -784
+      ],
+      "id": "358f577c-2260-483b-b013-9644abb1c564",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Fetches the contract playbook rules from the database based on contract type and stores them in shared memory. ALWAYS call this tool FIRST. Pass contract_type and intent.",
+        "text": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Prompt__User_Message_', ``, 'string') }}",
+        "options": {
+          "systemMessage": "You are the Contract Playbook Agent. Your only job is to retrieve the correct \nplaybook rules for the given contract type from the database and write a clear \nstructured summary of those rules into shared memory.\n\nYOUR PROCESS:\n1. Use the fetch_playbook tool to query the contract_playbook table, filtered \n   by the provided contract_type.\n2. Write a structured summary to memory in this format:\n\n--- PLAYBOOK RULES FOR [CONTRACT_TYPE] ---\nIntent: [intent]\nRules retrieved: [count]\n\n- Rule Name: [key_term_name]\n  Label: [key_term_label]\n  Description: [key_term_description]\n  Risk Weight: [risk_weight]\n\n--- END PLAYBOOK RULES ---\n\n3. Respond with: \"Playbook loaded for [contract_type]. [N] rules stored in memory.\"\n\nRULES:\n- Do not extract terms. Do not analyze risk.\n- If no rules found, write: \"No playbook rules found for [contract_type].\"\n"
+        },
+        "retryOnFail": true,
+        "maxTries": 3,
+        "waitBetweenTries": 2000
+      },
+      "type": "@n8n/n8n-nodes-langchain.agentTool",
+      "typeVersion": 3,
+      "position": [
+        2208,
+        -128
+      ],
+      "id": "1c465297-be87-4277-a198-bc96166fa19a",
+      "name": "contract_playbook_agent"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Fetches all playbook rules from the contract_playbook table filtered by contract_type. Returns key_term_name, key_term_label, key_term_description, risk_weight for each row.",
+        "operation": "getAll",
+        "tableId": "contract_playbook",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "contract_type",
+              "condition": "eq",
+              "keyValue": "={{ $fromAI('contract_type', 'The contract type to fetch playbook rules for', 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        2352,
+        336
+      ],
+      "id": "1aac9e3c-aa3b-4b42-ac07-c5ffcb0753e9",
+      "name": "fetch_playbook",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
+      "credentials": {
+        "supabaseApi": {
+          "id": "PLACEHOLDER_REPLACE_ON_IMPORT",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $execution.id }}",
+        "contextWindowLength": 50
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        2640,
+        256
+      ],
+      "id": "1777ee37-93b8-4976-afb7-22963c792f2d",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "claude-haiku-4-5-20251001",
+          "mode": "list",
+          "cachedResultName": "claude-haiku-4-5-20251001"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        1616,
+        32
+      ],
+      "id": "a1a1a1a1-0006-4a1a-8a1a-000000000006",
+      "name": "Anthropic Chat Model",
+      "credentials": {
+        "anthropicApi": {
+          "id": "PLACEHOLDER_REPLACE_ON_IMPORT",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "# Contract Analyzer — v4\n\n## v4 additions (self-consistency voting + reasoning)\n- key_term_extraction_agent's single agent-tool call was replaced with a direct-API loop: Prepare N Extraction Requests fans out to 3 items -> Extract Key Terms (Run N) calls the Anthropic Messages API directly (temperature 0.7, bypassing the LangChain agent-tool pattern entirely) -> Aggregate Self-Consistency Votes takes the 3 independent JSON outputs and, per playbook field, takes the majority value as the answer with the agreement fraction (e.g. \"3/3\", \"2/3\") as a real statistical confidence score, instead of the model self-rating its own confidence (not calibrated to anything) or a coarse binary Verified/Needs Review.\n- Why not just have the Orchestrator call key_term_extraction_agent 3 times via prompt instruction: LangChain agents don't reliably self-loop a tool call a fixed N times from prompt text alone — the workflow itself (Prepare N Extraction Requests) guarantees exactly N calls, deterministically, not the LLM's own judgment.\n- Orchestrator Agent's job shrank to STEP 1+2 only (intent + contract-type detection, then calling contract_playbook_agent) — its final output is now {contract_type, playbook_rules} as structured JSON, not the full extraction result.\n- key_term_extraction_agent's output gained a `reasoning` field (1-3 sentences citing what the source text says) alongside the existing source_quote/clause_ref.\n- GATE 2 (\"Parse Result\") gained a second, independent trigger: a term with NO majority at all across the 3 runs (every run disagreed) is flagged for human review regardless of risk_weight — \"the model can't agree with itself\" is its own reason for distrust, on top of the original high-risk-and-unverified trigger.\n- Cost/latency tradeoff, stated plainly: this is 3x the API calls and 3x the latency of a single extraction call, on a pipeline that already ran ~30-60s per document. Deliberate choice (N=3, not N=5) to keep that tradeoff bounded — see README for the full reasoning.\n\n## v3 additions (failure modes + human-in-the-loop)\n- GATE 1 — \"Sanity Check Extraction\": deterministic check on extracted text (length + alphanumeric ratio) BEFORE any LLM call. Catches corrupted/scanned/encrypted PDFs at the earliest possible point instead of letting garbage text propagate through the agent pipeline.\n- GATE 2 — \"Parse Result\" now computes needs_human_review: true only when a term is BOTH high risk_weight (4-5) AND has no source_quote. Escalates on uncertainty conditioned on stakes, not on risk alone (too broad) or missing-citation alone (too broad the other way). Deliberately NOT a third LLM classifier agent — an LLM deciding whether to trust an LLM is circular; this rule is auditable and uses data already computed.\n- Every node that calls an external system now has explicit error handling: retryOnFail with a delayed retry (not exponential backoff — n8n's built-in retry is fixed-delay; true backoff would need a custom Code-based loop, noted as a gap) on Orchestrator Agent, both sub-agents, fetch_playbook, and both Supabase writes. Extract from File and Orchestrator Agent's error branches are now actually WIRED to a response instead of vanishing into continueErrorOutput with nothing connected (that was a real bug in v2 — errors were being silently swallowed).\n\n## v3.1 fix — Task Runner hang\nParse Result originally used $('Webhook').item.json.body to grab file_name/intent for the audit log. On this self-hosted instance (n8n 2.21.7), a cross-node $('NodeName') lookup made from INSIDE Code-node JavaScript (executed in a separate Task Runner sandbox process) hung indefinitely — reproducibly, every run, isolated via single-node \"Execute step\" testing with pinned data. The same kind of lookup works fine as a parameter EXPRESSION on other node types (see Orchestrator Agent's own prompt, which does {{ $('Webhook').item.json.body.intent }} successfully) — expressions are evaluated by the main n8n process, not shipped out to the Task Runner over its (apparently broken) broker connection. Fix: removed file_name/intent from Parse Result entirely, since neither was actually used downstream by the frontend anyway — the fields existed only for a nice-to-have Supabase audit column. If you want them back, add a Set/Edit Fields node (parameter-expression based, not Code-node JS) between Orchestrator Agent and Parse Result instead of looking them up inside the Code node.\n\n## v2 changes (still true)\n- Session key is now per-execution ($execution.id) instead of a hardcoded \"test_session\" — fixes cross-request memory bleed between concurrent users.\n- LLM swapped from OpenAI gpt-4o-mini to Claude (Anthropic Chat Model), currently Haiku 4.5 — cheap tier, sufficient for this scoped task. Tiered routing (stronger model reserved for whatever Gate 2 flags) is a verbal talking point, not built, to avoid adding LLM-on-LLM complexity.\n- Added input validation (file present, type, size, intent) before processing.\n- Results are written to Supabase `extractions` for an audit trail and observability.\n- key_term_extraction_agent returns a verbatim source_quote per term (or null) — powers the citation click-through. No retrieval/vector DB — full text is already in context.\n\n## Before running\n1. Reconnect the Anthropic, Supabase (regular + tool) credentials — placeholders won't work.\n2. The Supabase credential MUST use the service role/secret key, not the anon/publishable key — RLS is on with no policies.\n3. Supabase project URL is already set to https://deezsambjmjmdqwodqhs.supabase.co\n4. Replace the webhook's allowedOrigins with your real Vercel domain once deployed.\n5. Run the updated supabase/schema.sql (adds needs_human_review, review_reason, and self_consistency_runs columns to extractions) — if you already ran an earlier version, just run the new ALTER TABLE lines at the bottom.\n6. Extract Key Terms (Run N) is a plain HTTP Request node, not a LangChain node — it needs its OWN Anthropic credential selected (Authentication -> Predefined Credential Type -> Anthropic API) after import; it doesn't share the Anthropic Chat Model node's connection automatically.",
+        "height": 640,
+        "width": 640
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        960,
+        -1024
+      ],
+      "id": "a1a1a1a1-0007-4a1a-8a1a-000000000007",
+      "name": "Sticky Note"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Input": {
+      "main": [
+        [
+          {
+            "node": "Input Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Input Valid?": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond 400 - Invalid Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Sanity Check Extraction",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Extraction-Failed Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sanity Check Extraction": {
+      "main": [
+        [
+          {
+            "node": "Extraction Sane?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraction Sane?": {
+      "main": [
+        [
+          {
+            "node": "Orchestrator Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Extraction-Failed Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Extraction-Failed Response": {
+      "main": [
+        [
+          {
+            "node": "Respond 422 - Needs Manual Review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Orchestrator Agent": {
+      "main": [
+        [
+          {
+            "node": "Parse Orchestrator Output",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Agent-Failed Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Agent-Failed Response": {
+      "main": [
+        [
+          {
+            "node": "Respond 502 - Agent Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Result": {
+      "main": [
+        [
+          {
+            "node": "Log Extraction to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Extraction to Supabase": {
+      "main": [
+        [
+          {
+            "node": "Finalize Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Finalize Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "contract_playbook_agent": {
+      "ai_tool": [
+        [
+          {
+            "node": "Orchestrator Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "fetch_playbook": {
+      "ai_tool": [
+        [
+          {
+            "node": "contract_playbook_agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Orchestrator Agent",
+            "type": "ai_memory",
+            "index": 0
+          },
+          {
+            "node": "contract_playbook_agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Orchestrator Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "contract_playbook_agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Orchestrator Output": {
+      "main": [
+        [
+          {
+            "node": "Attach Contract Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attach Contract Text": {
+      "main": [
+        [
+          {
+            "node": "Prepare N Extraction Requests",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare N Extraction Requests": {
+      "main": [
+        [
+          {
+            "node": "Extract Key Terms (Run N)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Key Terms (Run N)": {
+      "main": [
+        [
+          {
+            "node": "Attach Run Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attach Run Context": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Self-Consistency Votes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Self-Consistency Votes": {
+      "main": [
+        [
+          {
+            "node": "Parse Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "errorWorkflow": "REPLACE_WITH_ERROR_HANDLER_WORKFLOW_ID_AFTER_IMPORT"
+  },
+  "versionId": "0db95a03-b0e7-47b2-bce4-5e254ef86e69",
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "1ee21dfc80f315ed993e85c8dc97508d1c1d4e0b598766bf138052c558ce125b"
+  },
+  "id": "nkyPo5fQ9rzf1dqb",
+  "tags": []
+}

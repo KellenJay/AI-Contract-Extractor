@@ -1,0 +1,175 @@
+{
+  "name": "Contract Analyzer - Update Term",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "update-term",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "https://YOUR-VERCEL-DOMAIN.vercel.app"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [800, 0],
+      "id": "b2b2b2b2-0001-4b2b-8b2b-000000000001",
+      "name": "Webhook",
+      "webhookId": "a4f2c9e1-3d5b-4e7a-9c1f-2b6d8e0a4c7f"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body ?? {};\n\nif (!body.extraction_id) {\n  return [{ json: { valid: false, statusCode: 400, error: 'Missing \"extraction_id\".' } }];\n}\nif (!Array.isArray(body.key_terms)) {\n  return [{ json: { valid: false, statusCode: 400, error: 'Missing or invalid \"key_terms\" array.' } }];\n}\n\nreturn [{ json: { valid: true, extraction_id: body.extraction_id, key_terms: body.key_terms } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1008, 0],
+      "id": "b2b2b2b2-0002-4b2b-8b2b-000000000002",
+      "name": "Validate Input"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "c1", "leftValue": "={{ $json.valid }}", "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1216, 0],
+      "id": "b2b2b2b2-0003-4b2b-8b2b-000000000003",
+      "name": "Input Valid?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": { "responseCode": 400 }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [1440, 224],
+      "id": "b2b2b2b2-0004-4b2b-8b2b-000000000004",
+      "name": "Respond 400 - Invalid Input"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://deezsambjmjmdqwodqhs.supabase.co/rest/v1/extractions?id=eq.{{ $json.extraction_id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Prefer", "value": "return=representation" }]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ key_terms: $json.key_terms }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [1440, 0],
+      "id": "b2b2b2b2-0005-4b2b-8b2b-000000000005",
+      "name": "Update Extraction in Supabase",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "supabaseApi": { "id": "PLACEHOLDER_REPLACE_ON_IMPORT", "name": "Supabase account" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const updated = Array.isArray($json) ? $json[0] : $json;\nif (!updated || !updated.id) {\n  return [{ json: { valid: false, statusCode: 404, error: 'No extraction found for that id — nothing was updated.' } }];\n}\nreturn [{ json: { success: true, id: updated.id, key_terms: updated.key_terms } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1664, 0],
+      "id": "b2b2b2b2-0006-4b2b-8b2b-000000000006",
+      "name": "Finalize Response"
+    },
+    {
+      "parameters": { "options": {} },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [1888, 0],
+      "id": "b2b2b2b2-0007-4b2b-8b2b-000000000007",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    valid: false,\n    statusCode: 502,\n    error: 'Saving the correction failed after 3 attempts — the database update did not go through. The value shown in the app has NOT been persisted.'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1664, 288],
+      "id": "b2b2b2b2-0009-4b2b-8b2b-000000000009",
+      "name": "Build Update-Failed Response"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": { "responseCode": 502 }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [1888, 288],
+      "id": "b2b2b2b2-0010-4b2b-8b2b-00000000000a",
+      "name": "Respond 502 - Update Failed"
+    },
+    {
+      "parameters": {
+        "content": "# Contract Analyzer - Update Term\n\nCompanion workflow to Contract Analyzer. Lets the Results screen persist a\nmanually-edited term value back to the same extractions row, instead of the\nedit only existing in the browser tab. This is the CRUD half of the\nUncertainty-as-UX-Feature / Tight-Feedback-Loops idea — a human can correct\nan extraction and have that correction actually stick.\n\n## How it works\n1. Frontend already holds the full key_terms array in memory after analysis.\n2. When a term is edited, the frontend sends the WHOLE updated key_terms array\n   back here (not just the one changed field) — simplest possible merge logic,\n   no server-side JSONB patching required.\n3. This workflow PATCHes the extractions row by id and returns the saved result.\n\n## Setup\n1. Import, reconnect the Supabase credential (service role — same as Contract\n   Analyzer's), publish.\n2. Set this workflow's Settings → Error Workflow to \"Contract Analyzer - Error\n   Handler\" too, same as the main workflow.\n3. Copy the production webhook URL into frontend/config.js as updateWebhookUrl.\n4. Replace allowedOrigins with your real Vercel domain once deployed.\n\n## Error handling (v2)\nUpdate Extraction in Supabase now has an explicit error branch — 3 retries,\n1s apart, then a 502 telling the frontend the save did NOT persist, instead\nof the PATCH failing silently and the UI showing a correction that was never\nactually saved.\n\n## What this does NOT do\nNo audit history of prior values, no re-verification against the source text,\nno permissions check on who's allowed to edit — a real version would need all\nthree. Fine for a demo whose point is showing the loop exists at all.",
+        "height": 640,
+        "width": 640
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [800, -560],
+      "id": "b2b2b2b2-0008-4b2b-8b2b-000000000008",
+      "name": "Sticky Note"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": { "main": [[{ "node": "Validate Input", "type": "main", "index": 0 }]] },
+    "Validate Input": { "main": [[{ "node": "Input Valid?", "type": "main", "index": 0 }]] },
+    "Input Valid?": {
+      "main": [
+        [{ "node": "Update Extraction in Supabase", "type": "main", "index": 0 }],
+        [{ "node": "Respond 400 - Invalid Input", "type": "main", "index": 0 }]
+      ]
+    },
+    "Update Extraction in Supabase": {
+      "main": [
+        [{ "node": "Finalize Response", "type": "main", "index": 0 }],
+        [{ "node": "Build Update-Failed Response", "type": "main", "index": 0 }]
+      ]
+    },
+    "Finalize Response": { "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]] },
+    "Build Update-Failed Response": { "main": [[{ "node": "Respond 502 - Update Failed", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "errorWorkflow": "REPLACE_WITH_ERROR_HANDLER_WORKFLOW_ID_AFTER_IMPORT"
+  },
+  "versionId": "c3d4e5f6-a7b8-49c0-9d1e-2f3a4b5c6d7e",
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "1ee21dfc80f315ed993e85c8dc97508d1c1d4e0b598766bf138052c558ce125b"
+  },
+  "id": "updTermWf001",
+  "tags": []
+}

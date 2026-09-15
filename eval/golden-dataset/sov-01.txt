@@ -1,0 +1,40 @@
+STATEMENT OF VALUES (SOV)
+
+Insured: Ridgeline Roofing & Construction LLC
+Prepared for: Summit Risk Partners
+Effective Date: April 1, 2026
+Number of Locations: 2
+
+SCHEDULE OF LOCATIONS
+
+Location 1
+Address: 4410 Larimer Street, Denver, CO 80216
+Occupancy: Contractor's office and equipment storage warehouse
+Construction Type: Joisted Masonry
+Year Built: 1998
+Square Footage: 12,400 sq ft
+Number of Stories: 1
+Protection Class: 3
+Sprinklered: No
+Building Value: $1,450,000
+Contents Value: $620,000
+Business Income Value: $310,000
+
+Location 2
+Address: 8890 Peoria Street, Commerce City, CO 80022
+Occupancy: Vehicle and equipment storage yard
+Construction Type: Metal/Non-Combustible
+Year Built: 2011
+Square Footage: 6,200 sq ft
+Number of Stories: 1
+Protection Class: 4
+Sprinklered: No
+Building Value: $780,000
+Contents Value: $940,000
+Business Income Value: $150,000
+
+TOTAL INSURED VALUE (ALL LOCATIONS): $4,250,000
+
+NOTES
+Location 1 underwent a full roof replacement in 2023. Location 2 is used exclusively for
+fleet vehicle and material storage; no employees are regularly stationed there.

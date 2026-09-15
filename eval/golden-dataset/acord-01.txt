@@ -1,0 +1,44 @@
+COMMERCIAL INSURANCE APPLICATION (ACORD 125-STYLE)
+
+AGENCY / PRODUCER INFORMATION
+Agency Name: Summit Risk Partners
+Agency Contact: Dana Whitfield
+Phone: (303) 555-0142
+Email: dwhitfield@summitriskpartners.com
+
+APPLICANT INFORMATION
+Named Insured: Ridgeline Roofing & Construction LLC
+Mailing Address: 4410 Larimer Street, Denver, CO 80216
+FEIN: 84-1122334
+Business Type: Limited Liability Company
+Years in Business: 11
+NAICS Code: 238160 (Roofing Contractors)
+Nature of Business: Commercial and residential roofing installation, repair, and replacement.
+
+POLICY INFORMATION
+Proposed Effective Date: April 1, 2026
+Proposed Expiration Date: April 1, 2027
+Prior/Expiring Carrier: Continental Casualty Co.
+Prior Policy Expiration Date: March 31, 2026
+
+COVERAGE REQUESTED
+[X] General Liability
+[X] Workers Compensation
+[X] Commercial Property
+[ ] Commercial Auto
+[ ] Umbrella/Excess
+
+Total Insured Value (all locations): $4,850,000
+
+LOSS HISTORY SUMMARY
+Applicant has had 4 reported claims in the past 3 years, totaling $187,400 in incurred losses.
+See attached loss run for full claim-level detail. No open claim currently exceeds $51,000 in
+outstanding reserve.
+
+REMARKS
+Applicant has completed OSHA 30 safety training for all site supervisors as of January 2026.
+No lapses in coverage in the past 5 years.
+
+SIGNATURES
+Applicant Signature: _____________________  Date: _____________
+Producer Signature: _____________________  Date: _____________

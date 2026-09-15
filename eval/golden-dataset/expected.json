@@ -1,0 +1,51 @@
+{
+  "acord-01": {
+    "source_note": "Synthetic ACORD-125-style commercial insurance application, written for this golden set.",
+    "contract_type": "ACORD",
+    "parties": ["Ridgeline Roofing & Construction LLC"],
+    "effective_date": "April 1, 2026",
+    "key_terms": {
+      "named_insured": "Ridgeline Roofing & Construction LLC",
+      "mailing_address": "4410 Larimer Street, Denver, CO 80216",
+      "business_description": "Commercial and residential roofing installation, repair, and replacement",
+      "effective_date": "April 1, 2026",
+      "lines_of_business": "General Liability, Workers Compensation, Commercial Property",
+      "prior_carrier": "Continental Casualty Co.",
+      "loss_history_summary": "4 reported claims in the past 3 years, totaling $187,400 in incurred losses",
+      "total_insured_value": "$4,850,000"
+    }
+  },
+  "sov-01": {
+    "source_note": "Synthetic Statement of Values, written for this golden set.",
+    "contract_type": "SOV",
+    "parties": ["Ridgeline Roofing & Construction LLC"],
+    "effective_date": "April 1, 2026",
+    "key_terms": {
+      "number_of_locations": "2",
+      "total_insured_value": "$4,250,000",
+      "construction_type": "Joisted Masonry (Location 1), Metal/Non-Combustible (Location 2)",
+      "occupancy": "Contractor's office and equipment storage warehouse (Location 1); vehicle and equipment storage yard (Location 2)",
+      "protection_class": "3 (Location 1), 4 (Location 2)",
+      "year_built": "1998 (Location 1), 2011 (Location 2)",
+      "sprinklered": "No (both locations)",
+      "square_footage": "12,400 sq ft (Location 1), 6,200 sq ft (Location 2)"
+    }
+  },
+  "lossrun-01": {
+    "source_note": "Synthetic Loss Run Report, written for this golden set.",
+    "contract_type": "LOSS_RUN",
+    "parties": ["Ridgeline Roofing & Construction LLC", "Continental Casualty Co."],
+    "effective_date": "February 15, 2026",
+    "key_terms": {
+      "insured_name": "Ridgeline Roofing & Construction LLC",
+      "policy_period_covered": "April 1, 2023 to April 1, 2026",
+      "number_of_claims": "4",
+      "total_incurred": "$187,400",
+      "open_claims_count": "1",
+      "largest_claim_amount": "$64,200",
+      "loss_ratio": "Not specified",
+      "claims_by_cause": "Third-party property damage, employee fall from ladder, water intrusion, employee laceration"
+    },
+    "notes": "loss_ratio is expected to come back 'Not specified' — the document explicitly states the carrier does not disclose premium basis on loss runs, so there's nothing to calculate it from. Same honest-gap pattern as the retired lease sample's IFRS16 fields."
+  }
+}

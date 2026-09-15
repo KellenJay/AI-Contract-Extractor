@@ -1,0 +1,134 @@
+{
+  "name": "Contract Analyzer - Error Handler",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [0, 0],
+      "id": "e21f6e82-6f30-4f9d-943f-9c349e91fd65",
+      "name": "TriggerError"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0e4051ff-86a8-45c0-a16f-04f53098e5dc",
+              "name": "workflow_name",
+              "value": "={{ $json.workflow.name }}",
+              "type": "string"
+            },
+            {
+              "id": "0e4051ff-86a8-45c0-a16f-04f53098e5dd",
+              "name": "workflow_id",
+              "value": "={{ $json.workflow.id }}",
+              "type": "string"
+            },
+            {
+              "id": "0e4051ff-86a8-45c0-a16f-04f53098e5de",
+              "name": "execution_url",
+              "value": "={{ $json.execution.url }}",
+              "type": "string"
+            },
+            {
+              "id": "0e4051ff-86a8-45c0-a16f-04f53098e5df",
+              "name": "error_message",
+              "value": "={{ $json.execution.error.message }}",
+              "type": "string"
+            },
+            {
+              "id": "0e4051ff-86a8-45c0-a16f-04f53098e5e0",
+              "name": "failed_node",
+              "value": "={{ $json.execution.lastNodeExecuted }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [208, 0],
+      "id": "de7bd0d8-32d8-4017-8230-bc0bf163ae06",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://deezsambjmjmdqwodqhs.supabase.co/rest/v1/error_log",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Prefer", "value": "return=minimal" }]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ workflow_name: $json.workflow_name, workflow_id: $json.workflow_id, execution_url: $json.execution_url, error_message: $json.error_message, failed_node: $json.failed_node, payload: $json }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [416, 0],
+      "id": "a1a1a1a1-0101-4a1a-8a1a-000000000101",
+      "name": "Log Error to Supabase",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
+      "credentials": {
+        "supabaseApi": { "id": "PLACEHOLDER_REPLACE_ON_IMPORT", "name": "Supabase account" }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [624, 0],
+      "id": "1be9d15a-7bc5-4ede-b34a-86c09896d497",
+      "name": "No Operation, do nothing"
+    },
+    {
+      "parameters": {
+        "content": "This node would connect to Slack (or email) to page you when a production run fails.",
+        "height": 80,
+        "width": 256
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [832, 16],
+      "id": "dd3bc3ba-4a3d-4f92-ada7-5c9d2445996a",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "# Contract Analyzer - Error Handler\n\nAdapted from the \"Section 2 - Error Handler\" pattern (n8n Academy, N8N103) —\nsame Error Trigger → format → notify shape, but repointed from the training\nendpoint to a Supabase `error_log` table so failures in the Contract Analyzer\nworkflow get captured automatically instead of silently failing.\n\n## Trigger\n- Error Trigger: fires when the linked workflow fails in a production execution\n  (not on manual test runs)\n\n## Data Captured\n- workflow.name / workflow.id\n- execution.url — direct link to the failed run for debugging\n- execution.error.message\n- execution.lastNodeExecuted — which node broke\n\n## Setup\n1. Import this workflow, reconnect the Supabase credential (must be the service role key — RLS is on with no policies), replace the project URL.\n2. Run supabase/schema.sql (creates the error_log table) if you haven't already.\n3. Publish/activate this workflow.\n4. Copy its workflow ID (URL bar) and paste it into Contract Analyzer's\n   Settings → Error Workflow field.",
+        "height": 560,
+        "width": 640
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-720, 128],
+      "id": "46716e8d-136e-4690-a70a-fa222b6e3684",
+      "name": "Sticky Note1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "TriggerError": { "main": [[{ "node": "Edit Fields", "type": "main", "index": 0 }]] },
+    "Edit Fields": { "main": [[{ "node": "Log Error to Supabase", "type": "main", "index": 0 }]] },
+    "Log Error to Supabase": { "main": [[{ "node": "No Operation, do nothing", "type": "main", "index": 0 }]] }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "4fa6644a-c1d5-4f78-b391-3d7e3cc95ab5",
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "6f08a86ba18da2a65daa14319ecc04e08e3f94ce05b6bc954e5345643ddd3593"
+  },
+  "id": "nk3hCxhZAIdxLOGa",
+  "tags": []
+}

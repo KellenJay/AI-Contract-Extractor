@@ -1,0 +1,51 @@
+LOSS RUN REPORT
+
+Insured Name: Ridgeline Roofing & Construction LLC
+Policy Number(s): CNA-GL-88213456, CNA-WC-88213457
+Policy Period(s) Covered: April 1, 2023 - April 1, 2026 (3 policy years)
+Carrier: Continental Casualty Co.
+Report Generated: February 15, 2026
+
+CLAIM HISTORY
+
+Claim 1
+Claim Number: GL-2023-04471
+Date of Loss: June 12, 2023
+Cause of Loss: Third-party property damage - dropped roofing material damaged client's vehicle
+Status: Closed
+Amount Paid: $18,400
+Reserve Remaining: $0
+
+Claim 2
+Claim Number: WC-2023-09112
+Date of Loss: September 3, 2023
+Cause of Loss: Employee fall from ladder - lower back strain
+Status: Closed
+Amount Paid: $64,200
+Reserve Remaining: $0
+
+Claim 3
+Claim Number: GL-2024-01187
+Date of Loss: January 22, 2024
+Cause of Loss: Water intrusion during re-roofing project - interior damage to client property
+Status: Closed
+Amount Paid: $41,800
+Reserve Remaining: $0
+
+Claim 4
+Claim Number: WC-2025-06630
+Date of Loss: June 30, 2025
+Cause of Loss: Employee laceration from power tool
+Status: Open
+Amount Paid: $12,000
+Reserve Remaining: $51,000
+
+SUMMARY
+Total Number of Claims: 4
+Total Incurred (Paid + Reserved): $187,400
+Open Claims Count: 1
+Largest Single Claim Amount: $64,200 (Claim WC-2023-09112, incurred total including reserve)
+Loss Ratio: Not stated in this report - carrier does not disclose premium basis on loss runs.
+
+NOTES
+No claims exceed policy sublimits. No litigation currently pending on any claim.
