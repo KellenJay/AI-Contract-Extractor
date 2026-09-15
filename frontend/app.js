@@ -552,7 +552,7 @@
     let idx = normalized.indexOf(segment);
     if (idx !== -1) return { start: idx, text: segment };
 
-    const withoutPrefix = segment.replace(/^location\s+\d+\s*/, "");
+    const withoutPrefix = segment.replace(/^location\s+\d+\s*[-–—:]*\s*/, "");
     if (withoutPrefix !== segment && withoutPrefix.length > 8) {
       idx = normalized.indexOf(withoutPrefix);
       if (idx !== -1) return { start: idx, text: withoutPrefix };
