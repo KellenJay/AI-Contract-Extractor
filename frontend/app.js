@@ -138,6 +138,28 @@
     return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   }
 
+  // The extraction agent is prompted to always return term.value as a flat string,
+  // but for multi-location SOV fields it sometimes returns a per-location array of
+  // objects instead (e.g. [{location: "Location 1", value: 1998}, ...]) — this turns
+  // that (or any other non-string shape) into the same readable "Label: value" text
+  // the model was asked to produce, instead of rendering as "[object Object]".
+  function formatTermValue(value) {
+    if (value == null || value === "") return "Not specified";
+    if (Array.isArray(value)) {
+      return value.map(formatTermValue).join("; ");
+    }
+    if (typeof value === "object") {
+      const entries = Object.entries(value);
+      if (entries.length === 2) {
+        const labelEntry = entries.find(([, v]) => typeof v === "string") || entries[0];
+        const valueEntry = entries.find(([k]) => k !== labelEntry[0]) || entries[1];
+        return `${labelEntry[1]}: ${valueEntry[1]}`;
+      }
+      return entries.map(([k, v]) => `${k}: ${v}`).join(", ");
+    }
+    return String(value);
+  }
+
   function buildSummary(data) {
     const type = data.contract_type || "document";
     const terms = Array.isArray(data.key_terms) ? data.key_terms : [];
@@ -243,7 +265,7 @@
       return `<tr class="is-editing">
         <td>${escapeHtml(label)}</td>
         <td colspan="2">
-          <input type="text" class="edit-input" id="edit-input-${i}" value="${escapeHtml(String(term.value ?? ""))}" />
+          <input type="text" class="edit-input" id="edit-input-${i}" value="${escapeHtml(term.value == null ? "" : formatTermValue(term.value))}" />
           <span class="edit-error" id="edit-error-${i}"></span>
         </td>
         <td class="edit-actions">
@@ -253,7 +275,7 @@
       </tr>`;
     }
 
-    const value = term.value ?? "Not specified";
+    const value = formatTermValue(term.value);
     const fraction = term.confidence_fraction;
     const ratio = typeof term.confidence_ratio === "number" ? term.confidence_ratio : null;
 
@@ -412,7 +434,7 @@
     const wasChanged = term.edited && term.original_value != null && String(term.original_value) !== String(term.value);
     editedBadge.hidden = !term.edited;
     if (wasChanged) {
-      answerOriginalEl.textContent = `Originally extracted as: ${term.original_value}`;
+      answerOriginalEl.textContent = `Originally extracted as: ${formatTermValue(term.original_value)}`;
       answerOriginalEl.hidden = false;
     } else {
       answerOriginalEl.hidden = true;
@@ -452,7 +474,7 @@
       quoteEl.hidden = false;
     } else {
       sourceEl.hidden = true;
-      const value = term.value ?? "Not specified";
+      const value = formatTermValue(term.value);
       quoteEl.textContent = `${value} — no verbatim quote, the agent did not find this term stated in the document.`;
       quoteEl.hidden = false;
     }
@@ -486,10 +508,15 @@
     });
 
     // Some fields (e.g. a two-location schedule) get a source_quote that stitches
-    // together facts from separate parts of the document with "; " — that combined
-    // string never appears as one continuous run of text, so each ";"-delimited
-    // segment is searched for and highlighted independently instead.
-    const segments = String(quote ?? "").split(";").map((s) => normalizeForMatch(s)).filter(Boolean);
+    // together facts from separate parts of the document — sometimes joined with
+    // "; " as intended, but sometimes run on as one string with "Location 2" simply
+    // appearing mid-sentence with no delimiter. Splitting on both means each
+    // location's fragment is searched for and highlighted independently instead of
+    // the whole multi-location string collapsing onto just the first match.
+    const segments = String(quote ?? "")
+      .split(/;|(?=\bLocation\s+\d+\b)/i)
+      .map((s) => normalizeForMatch(s))
+      .filter(Boolean);
     if (segments.length === 0) return;
 
     let firstHitEl = null;

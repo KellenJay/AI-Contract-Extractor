@@ -44,6 +44,45 @@
           <p>Upload an ACORD application, Statement of Values, or Loss Run. The extraction agent classifies the document, pulls the terms defined in the playbook, and returns a structured record.</p>
         </header>
 
+        <div id="view-upload" class="view">
+          <form id="upload-form" class="upload-form">
+            <label id="dropzone" class="dropzone" for="file-input">
+              <input id="file-input" type="file" accept="application/pdf" hidden />
+              <div class="dropzone__icon">＋</div>
+              <div class="dropzone__label">Drop a document here, or click to browse</div>
+              <div class="dropzone__hint">PDF, up to 10MB</div>
+            </label>
+
+            <div id="file-preview" class="file-preview" hidden>
+              <div class="file-preview__bar">
+                <div class="file-preview__info">
+                  <span class="file-preview__eyebrow">Selected file</span>
+                  <span id="file-preview-name" class="file-preview__name">—</span>
+                </div>
+                <div class="file-preview__actions">
+                  <button type="button" class="btn-secondary" id="file-preview-change">Choose a different file</button>
+                  <button id="analyze-btn" class="btn-primary" type="submit">Analyze Document</button>
+                </div>
+              </div>
+              <iframe id="file-preview-frame" class="file-preview__frame" title="Document preview"></iframe>
+            </div>
+          </form>
+          <p id="config-hint" class="config-hint"></p>
+        </div>
+
+        <div id="view-loading" class="view" hidden>
+          <div class="spinner"></div>
+          <p class="loading-text">Classifying document type and extracting key terms…</p>
+        </div>
+
+        <div id="view-error" class="view" hidden>
+          <div class="error-card">
+            <h2>Couldn't analyze that document</h2>
+            <p id="error-message"></p>
+            <button class="btn-secondary" id="error-retry">Try another file</button>
+          </div>
+        </div>
+
         <div id="dashboard" class="dashboard">
           <div class="dashboard__header">
             <h3>Activity</h3>
@@ -83,45 +122,6 @@
               <tbody id="dashboard-recent-body"></tbody>
             </table>
             <p id="dashboard-empty" class="table-hint" hidden>No uploads in this range yet.</p>
-          </div>
-        </div>
-
-        <div id="view-upload" class="view">
-          <form id="upload-form" class="upload-form">
-            <label id="dropzone" class="dropzone" for="file-input">
-              <input id="file-input" type="file" accept="application/pdf" hidden />
-              <div class="dropzone__icon">＋</div>
-              <div class="dropzone__label">Drop a document here, or click to browse</div>
-              <div class="dropzone__hint">PDF, up to 10MB</div>
-            </label>
-
-            <div id="file-preview" class="file-preview" hidden>
-              <div class="file-preview__bar">
-                <div class="file-preview__info">
-                  <span class="file-preview__eyebrow">Selected file</span>
-                  <span id="file-preview-name" class="file-preview__name">—</span>
-                </div>
-                <div class="file-preview__actions">
-                  <button type="button" class="btn-secondary" id="file-preview-change">Choose a different file</button>
-                  <button id="analyze-btn" class="btn-primary" type="submit">Analyze Document</button>
-                </div>
-              </div>
-              <iframe id="file-preview-frame" class="file-preview__frame" title="Document preview"></iframe>
-            </div>
-          </form>
-          <p id="config-hint" class="config-hint"></p>
-        </div>
-
-        <div id="view-loading" class="view" hidden>
-          <div class="spinner"></div>
-          <p class="loading-text">Classifying document type and extracting key terms…</p>
-        </div>
-
-        <div id="view-error" class="view" hidden>
-          <div class="error-card">
-            <h2>Couldn't analyze that document</h2>
-            <p id="error-message"></p>
-            <button class="btn-secondary" id="error-retry">Try another file</button>
           </div>
         </div>
       </section>

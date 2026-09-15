@@ -136,7 +136,7 @@ body {
 
 /* Dashboard (Upload screen) */
 .dashboard[hidden] { display: none; }
-.dashboard { margin-bottom: 24px; }
+.dashboard { margin-top: 24px; }
 .dashboard__header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
 .dashboard__header h3 { margin: 0; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
 .dashboard__range {
