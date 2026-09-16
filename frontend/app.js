@@ -754,6 +754,7 @@
   const kpiTotal = document.getElementById("kpi-total");
   const kpiVerification = document.getElementById("kpi-verification");
   const kpiReview = document.getElementById("kpi-review");
+  const kpiCost = document.getElementById("kpi-cost");
   const kpiBreakdown = document.getElementById("kpi-breakdown");
   const dashboardRecentBody = document.getElementById("dashboard-recent-body");
   const dashboardEmpty = document.getElementById("dashboard-empty");
@@ -780,6 +781,15 @@
     const reviewCount = rows.filter((r) => r.needs_human_review).length;
     kpiReview.textContent = rows.length ? `${reviewCount} of ${rows.length}` : "—";
 
+    // Only the 3 self-consistency extraction calls are metered here (real token
+    // usage from the Anthropic API) — the Orchestrator/playbook-agent LangChain
+    // calls aren't included, since n8n doesn't expose their token usage to
+    // workflow data. So this is "extraction cost", not total pipeline cost.
+    const withCost = rows.filter((r) => typeof r.extraction_cost_usd === "number");
+    kpiCost.textContent = withCost.length
+      ? `$${(withCost.reduce((sum, r) => sum + r.extraction_cost_usd, 0) / withCost.length).toFixed(4)}`
+      : "—";
+
     const byType = rows.reduce((acc, r) => {
       const type = r.contract_type || "UNKNOWN";
       acc[type] = (acc[type] || 0) + 1;
@@ -794,6 +804,7 @@
       const date = new Date(r.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" });
       const fileName = r.file_name || "—";
       const rate = typeof r.verification_rate === "number" ? `${Math.round(r.verification_rate * 100)}%` : "—";
+      const cost = typeof r.extraction_cost_usd === "number" ? `$${r.extraction_cost_usd.toFixed(4)}` : "—";
       const statusBadge = r.needs_human_review
         ? `<span class="confidence-badge confidence-review">Needs Review</span>`
         : `<span class="confidence-badge confidence-verified">Clean</span>`;
@@ -803,6 +814,7 @@
           <td>${escapeHtml(fileName)}</td>
           <td><span class="type-pill">${escapeHtml(r.contract_type || "UNKNOWN")}</span></td>
           <td>${rate}</td>
+          <td>${cost}</td>
           <td>${statusBadge}</td>
         </tr>
       `;

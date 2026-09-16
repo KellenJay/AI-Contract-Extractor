@@ -107,6 +107,10 @@
               <p class="kpi-tile__label">Flagged for Review</p>
               <p class="kpi-tile__value" id="kpi-review">—</p>
             </div>
+            <div class="kpi-tile">
+              <p class="kpi-tile__label" title="Metered from the 3 self-consistency extraction calls only — the classification step isn't included, since n8n can't read its token usage">Avg. Extraction Cost</p>
+              <p class="kpi-tile__value" id="kpi-cost">—</p>
+            </div>
             <div class="kpi-tile kpi-tile--breakdown">
               <p class="kpi-tile__label">By Document Type</p>
               <div class="kpi-tile__breakdown" id="kpi-breakdown">—</div>
@@ -117,7 +121,7 @@
             <p class="table-hint">Recent uploads</p>
             <table class="terms-table dashboard-table">
               <thead>
-                <tr><th>Date</th><th>File</th><th>Type</th><th>Verification</th><th>Status</th></tr>
+                <tr><th>Date</th><th>File</th><th>Type</th><th>Verification</th><th>Cost</th><th>Status</th></tr>
               </thead>
               <tbody id="dashboard-recent-body"></tbody>
             </table>

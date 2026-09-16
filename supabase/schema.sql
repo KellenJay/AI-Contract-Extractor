@@ -82,6 +82,20 @@ alter table extractions add column if not exists review_reason text;
 -- needed there); only the run count itself needs its own column:
 alter table extractions add column if not exists self_consistency_runs int;
 
+-- v5: cost observability — real input/output token counts summed across the 3
+-- self-consistency "Extract Key Terms (Run N)" calls (the Anthropic Messages API
+-- returns `usage` on every response, unlike the LangChain agent nodes elsewhere in
+-- this workflow, which don't expose token usage to workflow data at all — only to
+-- n8n's own execution-log UI). extraction_cost_usd is computed from those tokens
+-- at Claude Haiku 4.5 list price ($1/MTok in, $5/MTok out) at insert time, not
+-- looked up live, so it stays correct even if pricing changes later — it's a
+-- snapshot of what that specific run actually cost. Deliberately does NOT include
+-- the Orchestrator Agent or contract_playbook_agent calls (undercounts total
+-- pipeline cost by roughly the size of one more full-document call) — see README.
+alter table extractions add column if not exists extraction_input_tokens int;
+alter table extractions add column if not exists extraction_output_tokens int;
+alter table extractions add column if not exists extraction_cost_usd numeric;
+
 create index if not exists extractions_created_at_idx on extractions (created_at desc);
 create index if not exists extractions_contract_type_idx on extractions (contract_type);
 create index if not exists extractions_needs_human_review_idx on extractions (needs_human_review) where needs_human_review;

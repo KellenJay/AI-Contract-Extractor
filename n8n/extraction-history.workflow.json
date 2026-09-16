@@ -26,7 +26,7 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "select", "value": "id,created_at,file_name,contract_type,key_terms,needs_human_review,self_consistency_runs" },
+            { "name": "select", "value": "id,created_at,file_name,contract_type,key_terms,needs_human_review,self_consistency_runs,extraction_input_tokens,extraction_output_tokens,extraction_cost_usd" },
             { "name": "order", "value": "created_at.desc" },
             { "name": "limit", "value": "200" }
           ]
@@ -48,7 +48,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Supabase returns one n8n item per row — collect them into one array\n// and compute the per-row verification rate (fraction of tracked fields that\n// actually have a citation) so the frontend doesn't have to redo that math\n// per row itself.\nconst rows = $input.all().map((item) => item.json);\n\nconst extractions = rows.map((row) => {\n  const terms = Array.isArray(row.key_terms) ? row.key_terms : [];\n  const verifiedCount = terms.filter(\n    (t) => typeof t.source_quote === 'string' && t.source_quote.trim().length > 0\n  ).length;\n  return {\n    id: row.id,\n    created_at: row.created_at,\n    file_name: row.file_name,\n    contract_type: row.contract_type,\n    needs_human_review: row.needs_human_review ?? false,\n    self_consistency_runs: row.self_consistency_runs ?? null,\n    field_count: terms.length,\n    verified_count: verifiedCount,\n    verification_rate: terms.length ? verifiedCount / terms.length : null\n  };\n});\n\nreturn [{ json: { extractions } }];"
+        "jsCode": "// Supabase returns one n8n item per row — collect them into one array\n// and compute the per-row verification rate (fraction of tracked fields that\n// actually have a citation) so the frontend doesn't have to redo that math\n// per row itself.\nconst rows = $input.all().map((item) => item.json);\n\nconst extractions = rows.map((row) => {\n  const terms = Array.isArray(row.key_terms) ? row.key_terms : [];\n  const verifiedCount = terms.filter(\n    (t) => typeof t.source_quote === 'string' && t.source_quote.trim().length > 0\n  ).length;\n  return {\n    id: row.id,\n    created_at: row.created_at,\n    file_name: row.file_name,\n    contract_type: row.contract_type,\n    needs_human_review: row.needs_human_review ?? false,\n    self_consistency_runs: row.self_consistency_runs ?? null,\n    field_count: terms.length,\n    verified_count: verifiedCount,\n    verification_rate: terms.length ? verifiedCount / terms.length : null,\n    extraction_cost_usd: row.extraction_cost_usd ?? null\n  };\n});\n\nreturn [{ json: { extractions } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,

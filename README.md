@@ -93,7 +93,8 @@ runs, and not dependent on the Orchestrator following an instruction correctly.
    `error_log`. If you already ran an earlier version of this file, just run
    the `alter table extractions add column if not exists ...` lines near
    the bottom to pick up `needs_human_review` / `review_reason` /
-   `self_consistency_runs`.
+   `self_consistency_runs` / `extraction_input_tokens` / `extraction_output_tokens`
+   / `extraction_cost_usd`.
 2. **n8n** — import `n8n/error-handler.workflow.json` first, reconnect its
    Supabase credential (project URL is already set to
    `deezsambjmjmdqwodqhs.supabase.co`), publish it, and copy its workflow ID.
@@ -306,6 +307,37 @@ fields were a nice-to-have Supabase audit column, not load-bearing. If
 they're wanted back, the correct fix is a Set/Edit Fields node (parameter
 expressions, not Code-node JS) between the agent and Parse Result — not
 reaching for `$()` inside a Code node's own JavaScript again.
+
+## Cost observability
+
+Motivated by a common theme in agent-observability discussions this year: an
+agent's cost is a real product metric, not an engineering afterthought — the
+example that sticks is a coding agent burning $786 over three hours failing to
+solve a problem a human would fix in five minutes. This build doesn't run
+unbounded agentic loops, so that specific failure mode doesn't apply, but the
+underlying point — know what a request actually costs, in real numbers, not
+vibes — does.
+
+Each extraction now logs `extraction_input_tokens`, `extraction_output_tokens`,
+and `extraction_cost_usd` to Supabase, computed from the real `usage` field
+Anthropic returns on the 3 self-consistency "Extract Key Terms (Run N)" calls
+(summed across all 3), at Claude Haiku 4.5 list price. The dashboard surfaces
+this as an "Avg. Extraction Cost" KPI tile and a per-document Cost column in
+the recent-uploads table — computed at insert time, not looked up live, so a
+historical row's cost stays a true snapshot of what that run cost even if
+pricing changes later.
+
+**Deliberately incomplete, stated plainly:** this covers only the 3 direct
+Anthropic API calls, not the Orchestrator Agent or contract_playbook_agent —
+both are LangChain agent nodes, and n8n does not expose their token usage to
+workflow data at all (confirmed by inspecting a real execution's Orchestrator
+output: it's just `{ output: "..." }`, no usage field — the "9,070 Tokens"
+n8n's own UI shows next to the node is a display-only stat from its internal
+LangChain callback tracking, not something a Code node can read). So the
+dashboard figure is labeled "extraction cost," not "total pipeline cost" — it
+undercounts the true per-document cost by roughly one more full-document
+call's worth of input tokens, rather than fabricating a number for the part
+that isn't actually measurable here.
 
 ## Interview talking points this build supports
 
